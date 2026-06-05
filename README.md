@@ -1,0 +1,144 @@
+# FORMAS Backend
+
+API Spring Boot para administrar el contenido de FORMAS.
+
+## Requisitos
+
+- Java JDK 21
+- Maven 3.9+
+
+## Ejecutar localmente
+
+```powershell
+mvn spring-boot:run
+```
+
+La API queda disponible en:
+
+```text
+http://localhost:8080
+```
+
+La base de datos local usa H2 y se guarda en:
+
+```text
+formas-backend/data/formas-cms.mv.db
+```
+
+La consola de H2 queda en:
+
+```text
+http://localhost:8080/h2-console
+```
+
+Datos de conexión:
+
+```text
+JDBC URL: jdbc:h2:file:./data/formas-cms
+User: sa
+Password:
+```
+
+## Endpoints principales
+
+```text
+GET    /api/products
+POST   /api/products
+PUT    /api/products/{id}
+DELETE /api/products/{id}
+
+GET    /api/categories
+POST   /api/categories
+PUT    /api/categories/{id}
+DELETE /api/categories/{id}
+
+GET    /api/pages
+GET    /api/hero-slides
+GET    /api/projects
+GET    /api/testimonials
+GET    /api/blog-posts
+```
+
+## Importación masiva de productos
+
+Endpoint:
+
+```text
+POST /api/import/products/excel
+```
+
+Campo multipart:
+
+```text
+file
+```
+
+Columnas esperadas en el Excel:
+
+```text
+id
+categoria_id
+nombre
+precio_texto
+precio_neto
+medidas
+descripcion
+material
+color_acabado
+tiempo_entrega
+descuento_porcentaje
+descuento_texto
+descuento_inicio
+descuento_fin
+destacado
+activo
+```
+
+Ejemplo:
+
+```text
+id: forma-tv-180
+categoria_id: centros-entretenimiento
+nombre: FORMA TV-180
+precio_texto: $4.500.000
+precio_neto: 4500000
+descuento_porcentaje: 15
+descuento_texto: -15%
+descuento_inicio: 2026-06-01
+descuento_fin: 2026-06-30
+destacado: true
+activo: true
+```
+
+## Importación masiva de imágenes
+
+Endpoint:
+
+```text
+POST /api/import/images/zip
+```
+
+Campos multipart:
+
+```text
+folder=productos
+file=imagenes-productos.zip
+```
+
+Convención:
+
+```text
+Producto id: forma-tv-180
+Imagen: forma-tv-180.jpg
+URL final: /uploads/productos/forma-tv-180.jpg
+```
+
+También se pueden usar carpetas como:
+
+```text
+categorias
+proyectos
+testimonios
+blog
+inicio
+```
