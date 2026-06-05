@@ -2,4 +2,5 @@ target/
 data/
 uploads/
 *.log
+*.err
 .env
