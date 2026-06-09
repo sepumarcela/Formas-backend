@@ -30,4 +30,10 @@ public class ImportController {
     int saved = imageStorageService.storeZip(folder, file);
     return Map.of("saved", saved, "folder", folder);
   }
+
+  @PostMapping("/images/file")
+  public Map<String, Object> importImage(@RequestParam String folder, @RequestParam MultipartFile file) throws IOException {
+    String url = imageStorageService.store(folder, file);
+    return Map.of("url", url, "folder", folder);
+  }
 }

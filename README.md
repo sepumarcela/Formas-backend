@@ -19,6 +19,16 @@ La API queda disponible en:
 http://localhost:8080
 ```
 
+Al abrir esa URL en el navegador debe aparecer una pantalla de estado del backend.
+El sitio web visible para el usuario final se abre desde el frontend. Para verlo, ejecuta `npm run dev` en la carpeta del frontend y abre la URL que muestre Vite en la terminal.
+
+En resumen:
+
+```text
+Backend / API: http://localhost:8080
+Frontend / sitio web: la URL que muestre Vite al ejecutar npm run dev
+```
+
 La base de datos local usa H2 y se guarda en:
 
 ```text
@@ -58,6 +68,24 @@ GET    /api/projects
 GET    /api/testimonials
 GET    /api/blog-posts
 ```
+
+## Contacto y newsletter
+
+Los mensajes enviados desde la pagina de contacto se guardan en:
+
+```text
+POST /api/contact-submissions
+GET  /api/contact-submissions
+```
+
+Los correos de suscripcion del blog se guardan en:
+
+```text
+POST /api/newsletter-subscriptions
+GET  /api/newsletter-subscriptions
+```
+
+Estos endpoints guardan datos en la base configurada, por ejemplo Neon/PostgreSQL.
 
 ## Importación masiva de productos
 
@@ -116,6 +144,31 @@ Endpoint:
 
 ```text
 POST /api/import/images/zip
+```
+
+También se puede subir una sola imagen desde el panel de administración:
+
+```text
+POST /api/import/images/file
+```
+
+Campos multipart:
+
+```text
+folder=productos
+file=imagen.jpg
+```
+
+Las imágenes quedan guardadas físicamente en:
+
+```text
+formas-backend/uploads
+```
+
+Y se sirven públicamente desde:
+
+```text
+/uploads/{folder}/{archivo}
 ```
 
 Campos multipart:
