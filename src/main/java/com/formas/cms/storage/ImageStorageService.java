@@ -21,6 +21,9 @@ public class ImageStorageService {
 
   public String store(String folder, MultipartFile file) throws IOException {
     String fileName = cleanFileName(file.getOriginalFilename());
+    if (!isImage(fileName)) {
+      throw new IllegalArgumentException("El archivo debe ser una imagen JPG, PNG o WEBP.");
+    }
     Path target = safeTarget(folder, fileName);
     Files.createDirectories(target.getParent());
     try (InputStream input = file.getInputStream()) {
