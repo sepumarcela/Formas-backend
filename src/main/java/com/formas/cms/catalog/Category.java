@@ -22,6 +22,7 @@ public class Category {
 
   @Column(columnDefinition = "TEXT")
   public String image;
+  public String icon = "shelf";
   public boolean active = true;
   public int displayOrder = 0;
 }

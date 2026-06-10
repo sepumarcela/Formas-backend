@@ -36,6 +36,8 @@ public class DatabaseTextColumnMigration implements ApplicationRunner {
         "alter table if exists category alter column image type text",
         "alter table if exists category alter column hero_image type text",
         "alter table if exists category alter column description type text",
+        "alter table if exists category add column if not exists icon varchar(255)",
+        "update category set icon = 'shelf' where icon is null or icon = ''",
         "alter table if exists product alter column image type text",
         "alter table if exists product alter column description type text",
         "alter table if exists product alter column price_text type text",
