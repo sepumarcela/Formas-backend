@@ -23,7 +23,7 @@ public class CategoryController {
 
   @GetMapping
   public List<Category> all() {
-    return repository.findAll();
+    return repository.findByActiveTrueOrderByDisplayOrderAsc();
   }
 
   @GetMapping("/{id}")
@@ -47,10 +47,12 @@ public class CategoryController {
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(@PathVariable String id) {
-    if (!repository.existsById(id)) {
+    Category category = repository.findById(id).orElse(null);
+    if (category == null) {
       return ResponseEntity.notFound().build();
     }
-    repository.deleteById(id);
+    category.active = false;
+    repository.save(category);
     return ResponseEntity.noContent().build();
   }
 }

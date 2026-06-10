@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.springframework.stereotype.Service;
@@ -33,7 +35,11 @@ public class ImageStorageService {
   }
 
   public int storeZip(String folder, MultipartFile file) throws IOException {
-    int saved = 0;
+    return storeZipWithUrls(folder, file).size();
+  }
+
+  public Map<String, String> storeZipWithUrls(String folder, MultipartFile file) throws IOException {
+    Map<String, String> savedFiles = new LinkedHashMap<>();
     try (ZipInputStream zip = new ZipInputStream(file.getInputStream())) {
       ZipEntry entry;
       while ((entry = zip.getNextEntry()) != null) {
@@ -44,10 +50,10 @@ public class ImageStorageService {
         Path target = safeTarget(folder, fileName);
         Files.createDirectories(target.getParent());
         Files.copy(zip, target, StandardCopyOption.REPLACE_EXISTING);
-        saved++;
+        savedFiles.put(fileName, "/uploads/" + folder + "/" + fileName);
       }
     }
-    return saved;
+    return savedFiles;
   }
 
   private Path safeTarget(String folder, String fileName) {
