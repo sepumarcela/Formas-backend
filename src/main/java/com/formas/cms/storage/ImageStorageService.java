@@ -17,9 +17,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
@@ -102,21 +105,26 @@ public class ImageStorageService {
         "public_id", publicId,
         "timestamp", String.valueOf(timestamp)));
 
-    MultipartBodyBuilder builder = new MultipartBodyBuilder();
-    builder.part("file", new NamedByteArrayResource(bytes, fileName))
-        .filename(fileName)
-        .contentType(MediaType.APPLICATION_OCTET_STREAM);
-    builder.part("api_key", apiKey);
-    builder.part("timestamp", String.valueOf(timestamp));
-    builder.part("folder", targetFolder);
-    builder.part("public_id", publicId);
-    builder.part("overwrite", "true");
-    builder.part("signature", signature);
+    HttpHeaders fileHeaders = new HttpHeaders();
+    fileHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+
+    MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+    form.add("file", new HttpEntity<>(new NamedByteArrayResource(bytes, fileName), fileHeaders));
+    form.add("api_key", apiKey);
+    form.add("timestamp", String.valueOf(timestamp));
+    form.add("folder", targetFolder);
+    form.add("public_id", publicId);
+    form.add("overwrite", "true");
+    form.add("signature", signature);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(form, headers);
 
     String url = "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload";
     Map<?, ?> response;
     try {
-      response = restTemplate.postForObject(url, builder.build(), Map.class);
+      response = restTemplate.postForObject(url, request, Map.class);
     } catch (RestClientResponseException error) {
       throw new IllegalStateException("Cloudinary rechazo la imagen: " + error.getResponseBodyAsString(), error);
     } catch (RestClientException error) {
