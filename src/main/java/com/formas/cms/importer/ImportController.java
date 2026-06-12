@@ -13,10 +13,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/import")
 public class ImportController {
   private final ProductExcelImportService productExcelImportService;
+  private final ProductImageImportService productImageImportService;
   private final ImageStorageService imageStorageService;
 
-  public ImportController(ProductExcelImportService productExcelImportService, ImageStorageService imageStorageService) {
+  public ImportController(ProductExcelImportService productExcelImportService,
+      ProductImageImportService productImageImportService,
+      ImageStorageService imageStorageService) {
     this.productExcelImportService = productExcelImportService;
+    this.productImageImportService = productImageImportService;
     this.imageStorageService = imageStorageService;
   }
 
@@ -29,6 +33,11 @@ public class ImportController {
   public Map<String, Object> importImages(@RequestParam String folder, @RequestParam MultipartFile file) throws IOException {
     int saved = imageStorageService.storeZip(folder, file);
     return Map.of("saved", saved, "folder", folder);
+  }
+
+  @PostMapping("/products/images/zip")
+  public ProductImageImportResult importProductImages(@RequestParam MultipartFile file) throws IOException {
+    return productImageImportService.importProductImages(file);
   }
 
   @PostMapping("/images/file")

@@ -26,6 +26,11 @@ public class CorsConfig implements WebMvcConfigurer {
         .allowedOrigins(allowedOrigins.toArray(String[]::new))
         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         .allowedHeaders("*");
+
+    registry.addMapping("/uploads/**")
+        .allowedOrigins(allowedOrigins.toArray(String[]::new))
+        .allowedMethods("GET", "OPTIONS")
+        .allowedHeaders("*");
   }
 
   @Override

@@ -55,10 +55,12 @@ public class ProductController {
 
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(@PathVariable String id) {
-    if (!repository.existsById(id)) {
+    Product product = repository.findById(id).orElse(null);
+    if (product == null) {
       return ResponseEntity.notFound().build();
     }
-    repository.deleteById(id);
+    product.active = false;
+    repository.save(product);
     return ResponseEntity.noContent().build();
   }
 }
