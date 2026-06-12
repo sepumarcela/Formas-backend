@@ -49,9 +49,9 @@ public class ImportController {
     return Map.of("url", url, "folder", folder);
   }
 
-  @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class })
+  @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class, IOException.class })
   @ResponseStatus(HttpStatus.BAD_REQUEST)
-  public Map<String, Object> handleImportError(RuntimeException error) {
+  public Map<String, Object> handleImportError(Exception error) {
     return Map.of("message", error.getMessage());
   }
 }
