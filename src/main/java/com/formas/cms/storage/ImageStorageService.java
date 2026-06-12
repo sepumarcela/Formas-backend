@@ -20,6 +20,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -91,8 +92,8 @@ public class ImageStorageService {
   }
 
   private String uploadToCloudinary(String folder, String fileName, byte[] bytes) {
-    String publicId = removeExtension(fileName);
-    String targetFolder = cloudinaryRootFolder + "/" + folder;
+    String publicId = cleanCloudinaryId(removeExtension(fileName));
+    String targetFolder = cleanCloudinaryFolder(folder);
     long timestamp = Instant.now().getEpochSecond();
     String signature = sign(Map.of(
         "folder", targetFolder,
@@ -112,7 +113,12 @@ public class ImageStorageService {
     builder.part("signature", signature);
 
     String url = "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload";
-    Map<?, ?> response = restTemplate.postForObject(url, builder.build(), Map.class);
+    Map<?, ?> response;
+    try {
+      response = restTemplate.postForObject(url, builder.build(), Map.class);
+    } catch (RestClientResponseException error) {
+      throw new IllegalStateException("Cloudinary rechazo la imagen: " + error.getResponseBodyAsString(), error);
+    }
     Object secureUrl = response == null ? null : response.get("secure_url");
     if (secureUrl == null) {
       throw new IllegalStateException("Cloudinary no devolvio una URL segura para la imagen.");
@@ -169,6 +175,22 @@ public class ImageStorageService {
       }
     }
     return fileName;
+  }
+
+  private String cleanCloudinaryFolder(String folder) {
+    String safeFolder = cleanCloudinaryId(folder);
+    String safeRoot = cleanCloudinaryId(cloudinaryRootFolder);
+    return safeRoot.isBlank() ? safeFolder : safeRoot + "/" + safeFolder;
+  }
+
+  private String cleanCloudinaryId(String value) {
+    if (value == null || value.isBlank()) {
+      return "formas";
+    }
+    return value
+        .toLowerCase(Locale.ROOT)
+        .replaceAll("[^a-z0-9_-]+", "-")
+        .replaceAll("^-+|-+$", "");
   }
 
   private static final class NamedByteArrayResource extends ByteArrayResource {

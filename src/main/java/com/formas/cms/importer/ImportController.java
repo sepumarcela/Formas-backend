@@ -3,9 +3,12 @@ package com.formas.cms.importer;
 import com.formas.cms.storage.ImageStorageService;
 import java.io.IOException;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,5 +47,11 @@ public class ImportController {
   public Map<String, Object> importImage(@RequestParam String folder, @RequestParam MultipartFile file) throws IOException {
     String url = imageStorageService.store(folder, file);
     return Map.of("url", url, "folder", folder);
+  }
+
+  @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class })
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public Map<String, Object> handleImportError(RuntimeException error) {
+    return Map.of("message", error.getMessage());
   }
 }
