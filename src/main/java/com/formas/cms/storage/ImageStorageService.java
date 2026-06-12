@@ -20,6 +20,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -118,6 +119,8 @@ public class ImageStorageService {
       response = restTemplate.postForObject(url, builder.build(), Map.class);
     } catch (RestClientResponseException error) {
       throw new IllegalStateException("Cloudinary rechazo la imagen: " + error.getResponseBodyAsString(), error);
+    } catch (RestClientException error) {
+      throw new IllegalStateException("No se pudo conectar con Cloudinary para subir la imagen.", error);
     }
     Object secureUrl = response == null ? null : response.get("secure_url");
     if (secureUrl == null) {
