@@ -115,7 +115,7 @@ public class ImageStorageService {
     Map<?, ?> response = restTemplate.postForObject(url, builder.build(), Map.class);
     Object secureUrl = response == null ? null : response.get("secure_url");
     if (secureUrl == null) {
-      throw new IllegalStateException("Cloudinary no devolvió una URL segura para la imagen.");
+      throw new IllegalStateException("Cloudinary no devolvio una URL segura para la imagen.");
     }
     return secureUrl.toString();
   }
