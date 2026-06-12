@@ -1,0 +1,9 @@
+target/
+data/
+uploads/
+.env
+*.log
+*.err
+.git/
+.agents/
+.codex/

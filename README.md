@@ -29,6 +29,87 @@ Backend / API: http://localhost:8080
 Frontend / sitio web: la URL que muestre Vite al ejecutar npm run dev
 ```
 
+## Variables de entorno
+
+Para local se puede usar H2 sin configurar nada adicional. Para producción, crear variables como estas en el hosting del backend:
+
+```text
+DATABASE_URL=jdbc:postgresql://HOST/DB?sslmode=require
+DATABASE_USERNAME=USUARIO
+DATABASE_PASSWORD=CLAVE
+DATABASE_DRIVER=org.postgresql.Driver
+JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+H2_CONSOLE_ENABLED=false
+
+FRONTEND_ORIGINS=https://TU_DOMINIO_FRONTEND
+UPLOADS_DIR=./uploads
+
+ADMIN_EMAIL=admin@formas.com
+ADMIN_PASSWORD=CAMBIAR_CLAVE
+JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO
+JWT_EXPIRATION_MINUTES=43200
+```
+
+`FRONTEND_ORIGINS` acepta varios dominios separados por coma, por ejemplo:
+
+```text
+https://formas.com,https://www.formas.com,https://formas-react.vercel.app
+```
+
+El frontend debe tener esta variable apuntando al backend:
+
+```text
+VITE_API_BASE_URL=https://TU_DOMINIO_BACKEND
+```
+
+## Despliegue en Render
+
+1. Sube este backend a GitHub.
+2. En Render crea un servicio nuevo:
+
+```text
+New + > Web Service > Build and deploy from a Git repository
+```
+
+3. Selecciona el repositorio del backend.
+4. Render detectará el `Dockerfile`. Usa estas opciones:
+
+```text
+Environment: Docker
+Health Check Path: /actuator/health
+```
+
+5. Configura estas variables de entorno en Render:
+
+```text
+DATABASE_URL=jdbc:postgresql://HOST/DB?sslmode=require
+DATABASE_USERNAME=USUARIO
+DATABASE_PASSWORD=CLAVE
+DATABASE_DRIVER=org.postgresql.Driver
+JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+H2_CONSOLE_ENABLED=false
+
+FRONTEND_ORIGINS=https://TU_FRONTEND
+UPLOADS_DIR=/var/data/uploads
+
+ADMIN_EMAIL=admin@formas.com
+ADMIN_PASSWORD=CAMBIAR_CLAVE
+JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO
+JWT_EXPIRATION_MINUTES=43200
+```
+
+6. Para que las imágenes subidas desde el admin no se pierdan al reiniciar el servicio, agrega un disco persistente en Render:
+
+```text
+Mount Path: /var/data
+```
+
+Luego el backend guardará las imágenes en:
+
+```text
+/var/data/uploads
+```
+
 La base de datos local usa H2 y se guarda en:
 
 ```text
