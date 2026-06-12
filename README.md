@@ -48,6 +48,11 @@ ADMIN_EMAIL=admin@formas.com
 ADMIN_PASSWORD=CAMBIAR_CLAVE
 JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO
 JWT_EXPIRATION_MINUTES=43200
+
+CLOUDINARY_CLOUD_NAME=TU_CLOUD_NAME
+CLOUDINARY_API_KEY=TU_API_KEY
+CLOUDINARY_API_SECRET=TU_API_SECRET
+CLOUDINARY_FOLDER=formas
 ```
 
 `FRONTEND_ORIGINS` acepta varios dominios separados por coma, por ejemplo:
@@ -96,9 +101,16 @@ ADMIN_EMAIL=admin@formas.com
 ADMIN_PASSWORD=CAMBIAR_CLAVE
 JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO
 JWT_EXPIRATION_MINUTES=43200
+
+CLOUDINARY_CLOUD_NAME=TU_CLOUD_NAME
+CLOUDINARY_API_KEY=TU_API_KEY
+CLOUDINARY_API_SECRET=TU_API_SECRET
+CLOUDINARY_FOLDER=formas
 ```
 
-6. Para que las imágenes subidas desde el admin no se pierdan al reiniciar el servicio, agrega un disco persistente en Render:
+6. Recomendado: usa Cloudinary para las imágenes del admin. Con las variables `CLOUDINARY_*` configuradas, el backend guardará las imágenes en Cloudinary y la base de datos almacenará la URL final.
+
+Si no configuras Cloudinary, el backend guardará las imágenes en `UPLOADS_DIR`. En ese caso, para que no se pierdan al reiniciar el servicio, agrega un disco persistente en Render:
 
 ```text
 Mount Path: /var/data
