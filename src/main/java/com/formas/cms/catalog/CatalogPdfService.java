@@ -16,8 +16,13 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +34,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -40,6 +50,10 @@ public class CatalogPdfService {
   private static final Color LINE = new Color(216, 206, 193);
   private static final Color GOLD = new Color(168, 143, 116);
   private static final Color DARK = new Color(40, 34, 29);
+  private static final int MAX_PDF_IMAGE_DIMENSION = 1200;
+  private static final long MAX_DIRECT_IMAGE_BYTES = 2L * 1024L * 1024L;
+  private static final long MAX_DATA_IMAGE_BYTES = 14L * 1024L * 1024L;
+  private static final float PDF_IMAGE_QUALITY = 0.78f;
   private static final List<String> CATEGORY_ORDER = List.of(
       "centros-entretenimiento",
       "closets",
@@ -543,24 +557,113 @@ public class CatalogPdfService {
     try {
       if (source.startsWith("data:image/")) {
         String base64 = source.substring(source.indexOf(',') + 1);
-        return Image.getInstance(Base64.getDecoder().decode(base64));
+        if (estimatedDecodedBytes(base64) > MAX_DATA_IMAGE_BYTES) {
+          return null;
+        }
+        return imageFromBytes(Base64.getDecoder().decode(base64));
       }
       if (source.startsWith("/uploads/")) {
         Path path = storageRoot.resolve(source.replaceFirst("^/uploads/", "")).normalize();
         if (path.startsWith(storageRoot) && Files.exists(path)) {
-          return Image.getInstance(Files.readAllBytes(path));
+          return imageFromPath(path);
         }
       }
       if (source.startsWith("http://") || source.startsWith("https://")) {
-        return Image.getInstance(URI.create(source).toURL());
+        return imageFromUrl(optimizedRemoteImageUrl(source));
       }
       Path path = Path.of(source);
       if (Files.exists(path)) {
-        return Image.getInstance(Files.readAllBytes(path));
+        return imageFromPath(path);
       }
     } catch (Exception ignored) {
       return null;
     }
     return null;
+  }
+
+  private Image imageFromPath(Path path) throws IOException, DocumentException {
+    try (InputStream input = Files.newInputStream(path)) {
+      Image optimized = imageFromBufferedImage(ImageIO.read(input));
+      if (optimized != null) {
+        return optimized;
+      }
+    }
+    if (Files.size(path) <= MAX_DIRECT_IMAGE_BYTES) {
+      return Image.getInstance(Files.readAllBytes(path));
+    }
+    return null;
+  }
+
+  private Image imageFromUrl(String source) throws IOException, DocumentException {
+    URL url = URI.create(source).toURL();
+    try (InputStream input = url.openStream()) {
+      Image optimized = imageFromBufferedImage(ImageIO.read(input));
+      if (optimized != null) {
+        return optimized;
+      }
+    }
+    return Image.getInstance(url);
+  }
+
+  private Image imageFromBytes(byte[] bytes) throws IOException, DocumentException {
+    try (java.io.ByteArrayInputStream input = new java.io.ByteArrayInputStream(bytes)) {
+      Image optimized = imageFromBufferedImage(ImageIO.read(input));
+      if (optimized != null) {
+        return optimized;
+      }
+    }
+    return bytes.length <= MAX_DIRECT_IMAGE_BYTES ? Image.getInstance(bytes) : null;
+  }
+
+  private Image imageFromBufferedImage(BufferedImage original) throws IOException, DocumentException {
+    if (original == null) {
+      return null;
+    }
+    BufferedImage scaled = scaleForPdf(original);
+    return Image.getInstance(toJpegBytes(scaled));
+  }
+
+  private BufferedImage scaleForPdf(BufferedImage original) {
+    int width = original.getWidth();
+    int height = original.getHeight();
+    double ratio = Math.min(1.0, (double) MAX_PDF_IMAGE_DIMENSION / Math.max(width, height));
+    int targetWidth = Math.max(1, (int) Math.round(width * ratio));
+    int targetHeight = Math.max(1, (int) Math.round(height * ratio));
+
+    BufferedImage scaled = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+    Graphics2D graphics = scaled.createGraphics();
+    graphics.setColor(Color.WHITE);
+    graphics.fillRect(0, 0, targetWidth, targetHeight);
+    graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    graphics.drawImage(original, 0, 0, targetWidth, targetHeight, null);
+    graphics.dispose();
+    return scaled;
+  }
+
+  private byte[] toJpegBytes(BufferedImage image) throws IOException {
+    try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageOutputStream imageOutput = ImageIO.createImageOutputStream(output)) {
+      ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+      writer.setOutput(imageOutput);
+      ImageWriteParam params = writer.getDefaultWriteParam();
+      params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+      params.setCompressionQuality(PDF_IMAGE_QUALITY);
+      writer.write(null, new IIOImage(image, null, null), params);
+      writer.dispose();
+      return output.toByteArray();
+    }
+  }
+
+  private long estimatedDecodedBytes(String base64) {
+    return (long) Math.ceil(base64.length() * 3.0 / 4.0);
+  }
+
+  private String optimizedRemoteImageUrl(String source) {
+    if (!source.contains("res.cloudinary.com") || !source.contains("/image/upload/")) {
+      return source;
+    }
+    return source.replaceFirst("/image/upload/", "/image/upload/c_limit,w_1200,h_1200,q_auto:eco,f_jpg/");
   }
 }

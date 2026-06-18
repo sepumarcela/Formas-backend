@@ -1,4 +1,17 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "terminal.integrated.profiles.windows": {
+        "Command Prompt": {
+            "path": "C:\\Windows\\System32\\cmd.exe"
+        },
+        "PowerShell NoProfile": {
+            "source": "PowerShell",
+            "args": [
+                "-NoLogo",
+                "-NoProfile"
+            ]
+        }
+    }
 }
