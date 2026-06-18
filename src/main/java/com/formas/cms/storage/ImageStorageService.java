@@ -55,14 +55,20 @@ public class ImageStorageService {
       throw new IllegalArgumentException("El archivo debe ser una imagen JPG, PNG o WEBP.");
     }
     if (isCloudinaryEnabled()) {
-      return uploadToCloudinary(folder, fileName, file.getBytes());
+      return uploadToCloudinary(folder, fileName, file.getBytes(), "image");
     }
-    Path target = safeTarget(folder, fileName);
-    Files.createDirectories(target.getParent());
-    try (InputStream input = file.getInputStream()) {
-      Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING);
+    return storeLocal(folder, fileName, file.getInputStream());
+  }
+
+  public String storePdf(String folder, MultipartFile file) throws IOException {
+    String fileName = cleanFileName(file.getOriginalFilename());
+    if (!isPdf(fileName)) {
+      throw new IllegalArgumentException("El archivo debe ser un PDF.");
     }
-    return "/uploads/" + folder + "/" + fileName;
+    if (isCloudinaryEnabled()) {
+      return uploadToCloudinary(folder, fileName, file.getBytes(), "raw");
+    }
+    return storeLocal(folder, fileName, file.getInputStream());
   }
 
   public int storeZip(String folder, MultipartFile file) throws IOException {
@@ -79,13 +85,29 @@ public class ImageStorageService {
         }
         String fileName = cleanFileName(Path.of(entry.getName()).getFileName().toString());
         if (isCloudinaryEnabled()) {
-          savedFiles.put(fileName, uploadToCloudinary(folder, fileName, zip.readAllBytes()));
+          savedFiles.put(fileName, uploadToCloudinary(folder, fileName, zip.readAllBytes(), "image"));
           continue;
         }
-        Path target = safeTarget(folder, fileName);
-        Files.createDirectories(target.getParent());
-        Files.copy(zip, target, StandardCopyOption.REPLACE_EXISTING);
-        savedFiles.put(fileName, "/uploads/" + folder + "/" + fileName);
+        savedFiles.put(fileName, storeLocal(folder, fileName, zip));
+      }
+    }
+    return savedFiles;
+  }
+
+  public Map<String, String> storePdfZipWithUrls(String folder, MultipartFile file) throws IOException {
+    Map<String, String> savedFiles = new LinkedHashMap<>();
+    try (ZipInputStream zip = new ZipInputStream(file.getInputStream())) {
+      ZipEntry entry;
+      while ((entry = zip.getNextEntry()) != null) {
+        if (entry.isDirectory() || !isPdf(entry.getName())) {
+          continue;
+        }
+        String fileName = cleanFileName(Path.of(entry.getName()).getFileName().toString());
+        if (isCloudinaryEnabled()) {
+          savedFiles.put(fileName, uploadToCloudinary(folder, fileName, zip.readAllBytes(), "raw"));
+          continue;
+        }
+        savedFiles.put(fileName, storeLocal(folder, fileName, zip));
       }
     }
     return savedFiles;
@@ -95,7 +117,7 @@ public class ImageStorageService {
     return !cloudName.isBlank() && !apiKey.isBlank() && !apiSecret.isBlank();
   }
 
-  private String uploadToCloudinary(String folder, String fileName, byte[] bytes) {
+  private String uploadToCloudinary(String folder, String fileName, byte[] bytes, String resourceType) {
     String publicId = cleanCloudinaryId(removeExtension(fileName));
     String targetFolder = cleanCloudinaryFolder(folder);
     long timestamp = Instant.now().getEpochSecond();
@@ -121,20 +143,27 @@ public class ImageStorageService {
     headers.setContentType(MediaType.MULTIPART_FORM_DATA);
     HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(form, headers);
 
-    String url = "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload";
+    String url = "https://api.cloudinary.com/v1_1/" + cloudName + "/" + resourceType + "/upload";
     Map<?, ?> response;
     try {
       response = restTemplate.postForObject(url, request, Map.class);
     } catch (RestClientResponseException error) {
-      throw new IllegalStateException("Cloudinary rechazo la imagen: " + error.getResponseBodyAsString(), error);
+      throw new IllegalStateException("Cloudinary rechazo el archivo: " + error.getResponseBodyAsString(), error);
     } catch (RestClientException error) {
-      throw new IllegalStateException("No se pudo conectar con Cloudinary para subir la imagen.", error);
+      throw new IllegalStateException("No se pudo conectar con Cloudinary para subir el archivo.", error);
     }
     Object secureUrl = response == null ? null : response.get("secure_url");
     if (secureUrl == null) {
-      throw new IllegalStateException("Cloudinary no devolvio una URL segura para la imagen.");
+      throw new IllegalStateException("Cloudinary no devolvio una URL segura para el archivo.");
     }
     return secureUrl.toString();
+  }
+
+  private String storeLocal(String folder, String fileName, InputStream input) throws IOException {
+    Path target = safeTarget(folder, fileName);
+    Files.createDirectories(target.getParent());
+    Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING);
+    return "/uploads/" + folder + "/" + fileName;
   }
 
   private String sign(Map<String, String> params) {
@@ -171,6 +200,10 @@ public class ImageStorageService {
     return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp");
   }
 
+  private boolean isPdf(String name) {
+    return name.toLowerCase(Locale.ROOT).endsWith(".pdf");
+  }
+
   private String cleanFileName(String name) {
     if (name == null || name.isBlank()) {
       throw new IllegalArgumentException("El archivo no tiene nombre.");
@@ -180,7 +213,7 @@ public class ImageStorageService {
 
   private String removeExtension(String fileName) {
     String lower = fileName.toLowerCase(Locale.ROOT);
-    for (String extension : new String[] { ".jpeg", ".jpg", ".png", ".webp" }) {
+    for (String extension : new String[] { ".jpeg", ".jpg", ".png", ".webp", ".pdf" }) {
       if (lower.endsWith(extension)) {
         return fileName.substring(0, fileName.length() - extension.length());
       }

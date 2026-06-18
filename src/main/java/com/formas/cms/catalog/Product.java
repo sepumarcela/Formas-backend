@@ -29,6 +29,8 @@ public class Product {
   public String leadTime;
   @Column(columnDefinition = "TEXT")
   public String image;
+  @Column(columnDefinition = "TEXT")
+  public String technicalSheet;
   public Integer discountPercent;
   public String discountLabel;
   public LocalDate discountStart;

@@ -65,6 +65,10 @@ public class ProductExcelImportService {
         product.featured = bool(row, columns, "destacado", false);
         product.active = bool(row, columns, "activo", true);
         product.image = imagePath("productos", id);
+        String technicalSheet = firstText(row, columns, "ficha_tecnica", "technical_sheet", "ficha_pdf");
+        if (!technicalSheet.isBlank()) {
+          product.technicalSheet = technicalSheet;
+        }
 
         productRepository.save(product);
         saved++;
@@ -105,6 +109,16 @@ public class ProductExcelImportService {
       return String.valueOf(cell.getBooleanCellValue());
     }
     return cell.toString().trim();
+  }
+
+  private String firstText(Row row, Map<String, Integer> columns, String... keys) {
+    for (String key : keys) {
+      String value = text(row, columns, key);
+      if (!value.isBlank()) {
+        return value;
+      }
+    }
+    return "";
   }
 
   private BigDecimal money(Row row, Map<String, Integer> columns, String key) {
