@@ -22,8 +22,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.io.OutputStream;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -50,10 +52,10 @@ public class CatalogPdfService {
   private static final Color LINE = new Color(216, 206, 193);
   private static final Color GOLD = new Color(168, 143, 116);
   private static final Color DARK = new Color(40, 34, 29);
-  private static final int MAX_PDF_IMAGE_DIMENSION = 1200;
+  private static final int MAX_PDF_IMAGE_DIMENSION = 900;
   private static final long MAX_DIRECT_IMAGE_BYTES = 2L * 1024L * 1024L;
   private static final long MAX_DATA_IMAGE_BYTES = 14L * 1024L * 1024L;
-  private static final float PDF_IMAGE_QUALITY = 0.78f;
+  private static final float PDF_IMAGE_QUALITY = 0.68f;
   private static final List<String> CATEGORY_ORDER = List.of(
       "centros-entretenimiento",
       "closets",
@@ -76,11 +78,18 @@ public class CatalogPdfService {
   }
 
   public byte[] generate() throws IOException {
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+      generate(out);
+      return out.toByteArray();
+    }
+  }
+
+  public void generate(OutputStream out) throws IOException {
     List<Category> categories = orderedCategories(categoryRepository.findByActiveTrueOrderByDisplayOrderAsc());
     List<Product> products = productRepository.findByActiveTrue();
     Map<String, Integer> pages = categoryStartPages(categories, products);
 
-    try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+    try {
       Document document = new Document(PageSize.A4, 42, 42, 42, 42);
       PdfWriter.getInstance(document, out);
       document.open();
@@ -102,7 +111,6 @@ public class CatalogPdfService {
 
       contact(document);
       document.close();
-      return out.toByteArray();
     } catch (DocumentException error) {
       throw new IOException("No se pudo generar el catálogo PDF.", error);
     }
@@ -596,7 +604,10 @@ public class CatalogPdfService {
 
   private Image imageFromUrl(String source) throws IOException, DocumentException {
     URL url = URI.create(source).toURL();
-    try (InputStream input = url.openStream()) {
+    URLConnection connection = url.openConnection();
+    connection.setConnectTimeout(6000);
+    connection.setReadTimeout(12000);
+    try (InputStream input = connection.getInputStream()) {
       Image optimized = imageFromBufferedImage(ImageIO.read(input));
       if (optimized != null) {
         return optimized;
@@ -664,6 +675,6 @@ public class CatalogPdfService {
     if (!source.contains("res.cloudinary.com") || !source.contains("/image/upload/")) {
       return source;
     }
-    return source.replaceFirst("/image/upload/", "/image/upload/c_limit,w_1200,h_1200,q_auto:eco,f_jpg/");
+    return source.replaceFirst("/image/upload/", "/image/upload/c_limit,w_900,h_900,q_auto:eco,f_jpg/");
   }
 }

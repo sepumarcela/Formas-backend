@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestController
 @RequestMapping("/api/catalog")
@@ -19,8 +20,8 @@ public class CatalogPdfController {
   }
 
   @GetMapping(value = "/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-  public ResponseEntity<byte[]> download() throws IOException {
-    byte[] pdf = catalogPdfService.generate();
+  public ResponseEntity<StreamingResponseBody> download() throws IOException {
+    StreamingResponseBody pdf = outputStream -> catalogPdfService.generate(outputStream);
     return ResponseEntity.ok()
         .contentType(MediaType.APPLICATION_PDF)
         .header(HttpHeaders.CONTENT_DISPOSITION,
