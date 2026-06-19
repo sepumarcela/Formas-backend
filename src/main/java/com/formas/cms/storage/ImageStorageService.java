@@ -65,7 +65,8 @@ public class ImageStorageService {
     if (!isPdf(fileName)) {
       throw new IllegalArgumentException("El archivo debe ser un PDF.");
     }
-    return storeLocal(folder, fileName, file.getInputStream());
+    storeLocal(folder, fileName, file.getInputStream());
+    return technicalSheetUrl(fileName);
   }
 
   public int storeZip(String folder, MultipartFile file) throws IOException {
@@ -100,7 +101,8 @@ public class ImageStorageService {
           continue;
         }
         String fileName = cleanFileName(Path.of(entry.getName()).getFileName().toString());
-        savedFiles.put(fileName, storeLocal(folder, fileName, zip));
+        storeLocal(folder, fileName, zip);
+        savedFiles.put(fileName, technicalSheetUrl(fileName));
       }
     }
     return savedFiles;
@@ -157,6 +159,10 @@ public class ImageStorageService {
     Files.createDirectories(target.getParent());
     Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING);
     return "/uploads/" + folder + "/" + fileName;
+  }
+
+  private String technicalSheetUrl(String fileName) {
+    return "/api/technical-sheets/" + fileName;
   }
 
   private String sign(Map<String, String> params) {

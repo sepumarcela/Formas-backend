@@ -28,6 +28,7 @@ public class SecurityConfig {
         .cors(cors -> {})
         .httpBasic(httpBasic -> httpBasic.disable())
         .formLogin(formLogin -> formLogin.disable())
+        .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()))
         .logout(logout -> logout.disable())
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .exceptionHandling(exceptions -> exceptions
