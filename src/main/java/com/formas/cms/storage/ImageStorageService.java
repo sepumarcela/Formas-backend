@@ -65,9 +65,6 @@ public class ImageStorageService {
     if (!isPdf(fileName)) {
       throw new IllegalArgumentException("El archivo debe ser un PDF.");
     }
-    if (isCloudinaryEnabled()) {
-      return uploadToCloudinary(folder, fileName, file.getBytes(), "raw");
-    }
     return storeLocal(folder, fileName, file.getInputStream());
   }
 
@@ -103,10 +100,6 @@ public class ImageStorageService {
           continue;
         }
         String fileName = cleanFileName(Path.of(entry.getName()).getFileName().toString());
-        if (isCloudinaryEnabled()) {
-          savedFiles.put(fileName, uploadToCloudinary(folder, fileName, zip.readAllBytes(), "raw"));
-          continue;
-        }
         savedFiles.put(fileName, storeLocal(folder, fileName, zip));
       }
     }
