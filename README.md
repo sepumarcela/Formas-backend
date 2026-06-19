@@ -1,6 +1,6 @@
 # FORMAS Backend
 
-API Spring Boot para administrar el contenido de FORMAS.
+API Spring Boot para administrar contenido, productos, imágenes, fichas técnicas, contactos y suscriptores de FORMAS.
 
 ## Requisitos
 
@@ -19,19 +19,11 @@ La API queda disponible en:
 http://localhost:8080
 ```
 
-Al abrir esa URL en el navegador debe aparecer una pantalla de estado del backend.
-El sitio web visible para el usuario final se abre desde el frontend. Para verlo, ejecuta `npm run dev` en la carpeta del frontend y abre la URL que muestre Vite en la terminal.
-
-En resumen:
-
-```text
-Backend / API: http://localhost:8080
-Frontend / sitio web: la URL que muestre Vite al ejecutar npm run dev
-```
+Al abrir esa URL debe aparecer una pantalla de estado del backend. El sitio público se ejecuta desde el frontend con `npm run dev`.
 
 ## Variables de entorno
 
-Para local se puede usar H2 sin configurar nada adicional. Para producción, crear variables como estas en el hosting del backend:
+Para desarrollo local se puede usar H2 sin configurar nada adicional. Para producción en Render usa variables como estas:
 
 ```text
 DATABASE_URL=jdbc:postgresql://HOST/DB?sslmode=require
@@ -41,60 +33,7 @@ DATABASE_DRIVER=org.postgresql.Driver
 JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
 H2_CONSOLE_ENABLED=false
 
-FRONTEND_ORIGINS=https://TU_DOMINIO_FRONTEND
-UPLOADS_DIR=./uploads
-
-ADMIN_EMAIL=admin@formas.com
-ADMIN_PASSWORD=CAMBIAR_CLAVE
-JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO
-JWT_EXPIRATION_MINUTES=43200
-
-CLOUDINARY_CLOUD_NAME=TU_CLOUD_NAME
-CLOUDINARY_API_KEY=TU_API_KEY
-CLOUDINARY_API_SECRET=TU_API_SECRET
-CLOUDINARY_FOLDER=formas
-```
-
-`FRONTEND_ORIGINS` acepta varios dominios separados por coma, por ejemplo:
-
-```text
-https://formas.com,https://www.formas.com,https://formas-react.vercel.app
-```
-
-El frontend debe tener esta variable apuntando al backend:
-
-```text
-VITE_API_BASE_URL=https://TU_DOMINIO_BACKEND
-```
-
-## Despliegue en Render
-
-1. Sube este backend a GitHub.
-2. En Render crea un servicio nuevo:
-
-```text
-New + > Web Service > Build and deploy from a Git repository
-```
-
-3. Selecciona el repositorio del backend.
-4. Render detectará el `Dockerfile`. Usa estas opciones:
-
-```text
-Environment: Docker
-Health Check Path: /actuator/health
-```
-
-5. Configura estas variables de entorno en Render:
-
-```text
-DATABASE_URL=jdbc:postgresql://HOST/DB?sslmode=require
-DATABASE_USERNAME=USUARIO
-DATABASE_PASSWORD=CLAVE
-DATABASE_DRIVER=org.postgresql.Driver
-JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
-H2_CONSOLE_ENABLED=false
-
-FRONTEND_ORIGINS=https://TU_FRONTEND
+FRONTEND_ORIGINS=https://TU_FRONTEND,https://www.TU_FRONTEND
 UPLOADS_DIR=/var/data/uploads
 
 ADMIN_EMAIL=admin@formas.com
@@ -108,38 +47,40 @@ CLOUDINARY_API_SECRET=TU_API_SECRET
 CLOUDINARY_FOLDER=formas
 ```
 
-6. Recomendado: usa Cloudinary para las imágenes del admin. Con las variables `CLOUDINARY_*` configuradas, el backend guardará las imágenes en Cloudinary y la base de datos almacenará la URL final.
+El frontend debe apuntar al backend con:
 
-Si no configuras Cloudinary, el backend guardará las imágenes en `UPLOADS_DIR`. En ese caso, para que no se pierdan al reiniciar el servicio, agrega un disco persistente en Render:
+```text
+VITE_API_BASE_URL=https://TU_BACKEND
+```
+
+## Despliegue en Render
+
+1. Crear un Web Service conectado al repositorio del backend.
+2. Usar Docker. Render detecta el `Dockerfile`.
+3. Configurar:
+
+```text
+Health Check Path: /actuator/health
+```
+
+4. Agregar las variables de entorno de producción.
+5. Para fichas técnicas PDF, usa disco persistente en Render:
 
 ```text
 Mount Path: /var/data
+UPLOADS_DIR=/var/data/uploads
 ```
 
-Luego el backend guardará las imágenes en:
+## Almacenamiento
+
+- Imágenes: Cloudinary cuando `CLOUDINARY_*` está configurado.
+- Fichas técnicas PDF: filesystem del backend, bajo `UPLOADS_DIR/fichas-tecnicas`.
+- Datos: PostgreSQL/Neon en producción.
+
+Las fichas técnicas se sirven inline desde:
 
 ```text
-/var/data/uploads
-```
-
-La base de datos local usa H2 y se guarda en:
-
-```text
-formas-backend/data/formas-cms.mv.db
-```
-
-La consola de H2 queda en:
-
-```text
-http://localhost:8080/h2-console
-```
-
-Datos de conexión:
-
-```text
-JDBC URL: jdbc:h2:file:./data/formas-cms
-User: sa
-Password:
+GET /api/technical-sheets/{archivo.pdf}
 ```
 
 ## Endpoints principales
@@ -164,25 +105,17 @@ GET    /api/blog-posts
 
 ## Contacto y newsletter
 
-Los mensajes enviados desde la pagina de contacto se guardan en:
-
 ```text
 POST /api/contact-submissions
 GET  /api/contact-submissions
-```
 
-Los correos de suscripcion del blog se guardan en:
-
-```text
 POST /api/newsletter-subscriptions
 GET  /api/newsletter-subscriptions
 ```
 
-Estos endpoints guardan datos en la base configurada, por ejemplo Neon/PostgreSQL.
+Los correos suscritos se guardan en la tabla `newsletter_subscription`.
 
 ## Importación masiva de productos
-
-Endpoint:
 
 ```text
 POST /api/import/products/excel
@@ -194,7 +127,7 @@ Campo multipart:
 file
 ```
 
-Columnas esperadas en el Excel:
+Columnas principales:
 
 ```text
 id
@@ -211,64 +144,17 @@ descuento_porcentaje
 descuento_texto
 descuento_inicio
 descuento_fin
+ficha_tecnica
+technical_sheet
+ficha_pdf
 destacado
 activo
 ```
 
-Ejemplo:
-
-```text
-id: forma-tv-180
-categoria_id: centros-entretenimiento
-nombre: FORMA TV-180
-precio_texto: $4.500.000
-precio_neto: 4500000
-descuento_porcentaje: 15
-descuento_texto: -15%
-descuento_inicio: 2026-06-01
-descuento_fin: 2026-06-30
-destacado: true
-activo: true
-```
-
 ## Importación masiva de imágenes
-
-Endpoint:
 
 ```text
 POST /api/import/images/zip
-```
-
-También se puede subir una sola imagen desde el panel de administración:
-
-```text
-POST /api/import/images/file
-```
-
-Campos multipart:
-
-```text
-folder=productos
-file=imagen.jpg
-```
-
-Las imágenes quedan guardadas físicamente en:
-
-```text
-formas-backend/uploads
-```
-
-Y se sirven públicamente desde:
-
-```text
-/uploads/{folder}/{archivo}
-```
-
-Campos multipart:
-
-```text
-folder=productos
-file=imagenes-productos.zip
 ```
 
 Convención:
@@ -276,15 +162,23 @@ Convención:
 ```text
 Producto id: forma-tv-180
 Imagen: forma-tv-180.jpg
-URL final: /uploads/productos/forma-tv-180.jpg
 ```
 
-También se pueden usar carpetas como:
+## Importación masiva de fichas técnicas
 
 ```text
-categorias
-proyectos
-testimonios
-blog
-inicio
+POST /api/import/products/technical-sheets/zip
+```
+
+Convención:
+
+```text
+Producto id: repisa-002
+Ficha PDF: repisa-002.pdf
+```
+
+Después de subir el ZIP, el producto guarda una URL como:
+
+```text
+/api/technical-sheets/repisa-002.pdf
 ```
