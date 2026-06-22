@@ -1,4 +1,4 @@
-﻿package com.formas.cms.config;
+package com.formas.cms.config;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
