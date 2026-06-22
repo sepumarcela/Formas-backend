@@ -1,4 +1,4 @@
-package com.formas.cms.config;
+﻿package com.formas.cms.config;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +14,7 @@ public class HomeController {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>FORMAS Backend</title>
+          <title>Formas Interiores Backend</title>
           <style>
             body {
               margin: 0;
@@ -70,7 +70,7 @@ public class HomeController {
         <body>
           <main>
             <section class="card">
-              <h1>FORMAS Backend</h1>
+              <h1>Formas Interiores Backend</h1>
               <div class="status">Backend encendido</div>
               <p>
                 Esta es la API que alimenta el sitio y el panel de administracion.

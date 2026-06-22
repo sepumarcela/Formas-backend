@@ -1,6 +1,6 @@
-# FORMAS Backend
+﻿# Formas Interiores Backend
 
-API Spring Boot para administrar contenido, productos, imágenes, fichas técnicas, contactos y suscriptores de FORMAS.
+API Spring Boot para administrar contenido, productos, imágenes, fichas técnicas, contactos y suscriptores de Formas Interiores.
 
 ## Requisitos
 

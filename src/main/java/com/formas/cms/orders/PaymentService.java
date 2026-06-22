@@ -26,7 +26,7 @@ public class PaymentService {
     validateAmount(request);
 
     Order order = new Order();
-    order.reference = "FORMAS-" + Instant.now().toEpochMilli() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    order.reference = "FORMAS-INT-" + Instant.now().toEpochMilli() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     order.amountCents = request.amountCents;
     order.subtotalCents = request.subtotalCents;
     order.taxCents = request.taxCents;
