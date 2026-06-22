@@ -1,5 +1,6 @@
 package com.formas.cms.orders;
 
 public enum PaymentProvider {
-  WOMPI
+  WOMPI,
+  COORDINAR_COMPRA
 }

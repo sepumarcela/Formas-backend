@@ -21,6 +21,11 @@ public class PaymentController {
     return paymentService.createPayment(request);
   }
 
+  @PostMapping("/orders")
+  public PaymentResponse createOrder(@Valid @RequestBody OrderRequest request) {
+    return paymentService.createCoordinatedOrder(request);
+  }
+
   @PostMapping("/wompi/events")
   public ResponseEntity<Void> wompiEvents(@RequestBody String payload) {
     paymentService.handleWompiEvent(payload);

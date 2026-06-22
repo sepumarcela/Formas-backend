@@ -25,32 +25,9 @@ public class PaymentService {
   public PaymentResponse createPayment(PaymentRequest request) {
     validateAmount(request);
 
-    Order order = new Order();
-    order.reference = "FORMAS-INT-" + Instant.now().toEpochMilli() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-    order.amountCents = request.amountCents;
-    order.subtotalCents = request.subtotalCents;
-    order.taxCents = request.taxCents;
-    order.paymentMethod = request.paymentMethod;
-    order.customer.name = request.name;
-    order.customer.email = request.email;
-    order.customer.phone = request.phone;
-    order.customer.city = request.city;
-    order.customer.address = request.address;
-    order.customer.notes = request.notes;
-
-    for (PaymentItemRequest item : request.items) {
-      OrderItem orderItem = new OrderItem();
-      orderItem.productId = item.productId;
-      orderItem.name = item.name;
-      orderItem.category = item.category;
-      orderItem.image = item.image;
-      orderItem.quantity = item.quantity;
-      orderItem.unitAmountCents = item.unitAmountCents;
-      orderItem.totalAmountCents = item.unitAmountCents * item.quantity;
-      order.items.add(orderItem);
-    }
-
-    repository.save(order);
+    Order order = buildOrder(request);
+    order.paymentProvider = PaymentProvider.WOMPI;
+    order = repository.save(order);
 
     PaymentResponse response = new PaymentResponse();
     response.reference = order.reference;
@@ -81,6 +58,18 @@ public class PaymentService {
     return response;
   }
 
+  public PaymentResponse createCoordinatedOrder(OrderRequest request) {
+    Order order = buildOrder(request);
+    order.paymentProvider = PaymentProvider.COORDINAR_COMPRA;
+    order = repository.save(order);
+
+    PaymentResponse response = new PaymentResponse();
+    response.reference = order.reference;
+    response.configured = false;
+    response.message = "Pedido registrado para coordinar compra.";
+    return response;
+  }
+
   public void handleWompiEvent(String payload) {
     try {
       JsonNode root = objectMapper.readTree(payload);
@@ -108,6 +97,61 @@ public class PaymentService {
     if (itemsTotal != request.amountCents) {
       throw new IllegalArgumentException("El total del pedido no coincide con los productos.");
     }
+  }
+
+  private Order buildOrder(PaymentRequest request) {
+    OrderRequest orderRequest = new OrderRequest();
+    orderRequest.name = request.name;
+    orderRequest.email = request.email;
+    orderRequest.phone = request.phone;
+    orderRequest.city = request.city;
+    orderRequest.address = request.address;
+    orderRequest.notes = request.notes;
+    orderRequest.paymentMethod = request.paymentMethod;
+    orderRequest.amountCents = request.amountCents;
+    orderRequest.subtotalCents = request.subtotalCents;
+    orderRequest.taxCents = request.taxCents;
+    orderRequest.items = request.items.stream().map((item) -> {
+      OrderLineRequest line = new OrderLineRequest();
+      line.productId = item.productId;
+      line.name = item.name;
+      line.category = item.category;
+      line.image = item.image;
+      line.quantity = item.quantity;
+      line.unitAmountCents = item.unitAmountCents;
+      return line;
+    }).toList();
+
+    return buildOrder(orderRequest);
+  }
+
+  private Order buildOrder(OrderRequest request) {
+    Order order = new Order();
+    order.reference = "FORMAS-INT-" + Instant.now().toEpochMilli() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    order.amountCents = request.amountCents;
+    order.subtotalCents = request.subtotalCents;
+    order.taxCents = request.taxCents;
+    order.paymentMethod = request.paymentMethod;
+    order.customer.name = request.name;
+    order.customer.email = request.email;
+    order.customer.phone = request.phone;
+    order.customer.city = request.city;
+    order.customer.address = request.address;
+    order.customer.notes = request.notes;
+
+    for (OrderLineRequest item : request.items) {
+      OrderItem orderItem = new OrderItem();
+      orderItem.productId = item.productId;
+      orderItem.name = item.name;
+      orderItem.category = item.category;
+      orderItem.image = item.image;
+      orderItem.quantity = item.quantity;
+      orderItem.unitAmountCents = item.unitAmountCents;
+      orderItem.totalAmountCents = item.unitAmountCents == null ? null : item.unitAmountCents * item.quantity;
+      order.items.add(orderItem);
+    }
+
+    return order;
   }
 
   private OrderStatus mapStatus(String status) {
