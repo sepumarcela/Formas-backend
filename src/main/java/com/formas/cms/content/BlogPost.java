@@ -30,7 +30,7 @@ public class BlogPost {
   @Column(columnDefinition = "TEXT")
   public String originalUrl;
 
-  public boolean trending = false;
+  public Boolean trending = false;
   public LocalDate publishedAt;
   public boolean active = true;
 }
