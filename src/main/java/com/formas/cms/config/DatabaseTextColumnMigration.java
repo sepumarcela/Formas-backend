@@ -68,7 +68,28 @@ public class DatabaseTextColumnMigration implements ApplicationRunner {
         "alter table if exists blog_post alter column excerpt type text",
         "alter table if exists blog_post alter column content type text",
         "alter table if exists blog_post alter column title type text",
-        "alter table if exists blog_post alter column display_date type text");
+        "alter table if exists blog_post alter column display_date type text",
+        "alter table if exists customer_order alter column payment_provider type varchar(255)",
+        "alter table if exists customer_order add column if not exists payment_method varchar(255)",
+        "alter table if exists customer_order add column if not exists subtotal_cents bigint",
+        "alter table if exists customer_order add column if not exists tax_cents bigint",
+        "alter table if exists customer_order add column if not exists notes text",
+        """
+        do $$
+        declare constraint_record record;
+        begin
+          for constraint_record in
+            select c.conname
+            from pg_constraint c
+            join pg_class t on t.oid = c.conrelid
+            where t.relname = 'customer_order'
+              and c.contype = 'c'
+              and pg_get_constraintdef(c.oid) like '%payment_provider%'
+          loop
+            execute format('alter table customer_order drop constraint if exists %I', constraint_record.conname);
+          end loop;
+        end $$;
+        """);
 
     statements.forEach(jdbcTemplate::execute);
   }

@@ -5,8 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -30,8 +28,7 @@ public class Order {
   @Enumerated(EnumType.STRING)
   public OrderStatus status = OrderStatus.PENDING;
 
-  @Enumerated(EnumType.STRING)
-  public PaymentProvider paymentProvider = PaymentProvider.WOMPI;
+  public String paymentProvider = "WOMPI";
 
   public String providerTransactionId;
   public String currency = "COP";

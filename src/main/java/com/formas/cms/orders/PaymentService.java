@@ -26,7 +26,7 @@ public class PaymentService {
     validateAmount(request);
 
     Order order = buildOrder(request);
-    order.paymentProvider = PaymentProvider.WOMPI;
+    order.paymentProvider = "WOMPI";
     order = repository.save(order);
 
     PaymentResponse response = new PaymentResponse();
@@ -60,7 +60,7 @@ public class PaymentService {
 
   public PaymentResponse createCoordinatedOrder(OrderRequest request) {
     Order order = buildOrder(request);
-    order.paymentProvider = PaymentProvider.COORDINAR_COMPRA;
+    order.paymentProvider = "COORDINAR_COMPRA";
     order = repository.save(order);
 
     PaymentResponse response = new PaymentResponse();
