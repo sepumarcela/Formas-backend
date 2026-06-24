@@ -5,10 +5,12 @@ import com.formas.cms.catalog.ProductRepository;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -39,9 +41,9 @@ public class ProductExcelImportService {
           continue;
         }
         processed++;
-        String id = text(row, columns, "id");
-        String categoryId = text(row, columns, "categoria_id");
-        String name = text(row, columns, "nombre");
+        String id = firstText(row, columns, "id");
+        String categoryId = firstText(row, columns, "categoria_id", "categoryId", "category_id", "categoria");
+        String name = firstText(row, columns, "nombre", "name");
         if (id.isBlank() || categoryId.isBlank() || name.isBlank()) {
           skipped++;
           continue;
@@ -51,21 +53,23 @@ public class ProductExcelImportService {
         product.id = id;
         product.categoryId = categoryId;
         product.name = name;
-        product.priceText = text(row, columns, "precio_texto");
-        product.netPrice = money(row, columns, "precio_neto");
-        product.size = text(row, columns, "medidas");
-        product.description = text(row, columns, "descripcion");
-        product.material = text(row, columns, "material");
-        product.colorFinish = text(row, columns, "color_acabado");
-        product.leadTime = text(row, columns, "tiempo_entrega");
-        product.discountPercent = integer(row, columns, "descuento_porcentaje");
-        product.discountLabel = text(row, columns, "descuento_texto");
-        product.discountStart = date(row, columns, "descuento_inicio");
-        product.discountEnd = date(row, columns, "descuento_fin");
-        product.featured = bool(row, columns, "destacado", false);
-        product.active = bool(row, columns, "activo", true);
-        product.image = imagePath("productos", id);
-        String technicalSheet = firstText(row, columns, "ficha_tecnica", "technical_sheet", "ficha_pdf");
+        product.priceText = firstText(row, columns, "precio_texto", "price", "precio");
+        product.netPrice = money(row, columns, "precio_neto", "netPrice", "net_price");
+        product.size = firstText(row, columns, "medidas", "size");
+        product.description = firstText(row, columns, "descripcion", "description");
+        product.material = firstText(row, columns, "material");
+        product.colorFinish = firstText(row, columns, "color_acabado", "color", "colorFinish", "color_finish");
+        product.leadTime = firstText(row, columns, "tiempo_entrega", "leadTime", "lead_time");
+        product.discountPercent = integer(row, columns, "descuento_porcentaje", "discountPercent", "discount_percent");
+        product.discountLabel = firstText(row, columns, "descuento_texto", "discountLabel", "discount_label");
+        product.discountStart = date(row, columns, "descuento_inicio", "discountStart", "discount_start");
+        product.discountEnd = date(row, columns, "descuento_fin", "discountEnd", "discount_end");
+        product.featured = bool(row, columns, false, "destacado", "featured");
+        product.active = bool(row, columns, true, "activo", "active");
+
+        String image = firstText(row, columns, "image", "imagen");
+        product.image = image.isBlank() ? imagePath("productos", id) : image;
+        String technicalSheet = firstText(row, columns, "ficha_tecnica", "technicalSheet", "technical_sheet", "ficha_pdf");
         if (!technicalSheet.isBlank()) {
           product.technicalSheet = technicalSheet;
         }
@@ -75,7 +79,7 @@ public class ProductExcelImportService {
       }
     }
 
-    return new ImportSummary(processed, saved, skipped, "Importación de productos finalizada.");
+    return new ImportSummary(processed, saved, skipped, "Importacion de productos finalizada.");
   }
 
   private Map<String, Integer> readColumns(Row header) {
@@ -84,13 +88,13 @@ public class ProductExcelImportService {
       return columns;
     }
     for (Cell cell : header) {
-      columns.put(cell.getStringCellValue().trim().toLowerCase(), cell.getColumnIndex());
+      columns.put(normalizeKey(cell.getStringCellValue()), cell.getColumnIndex());
     }
     return columns;
   }
 
   private String text(Row row, Map<String, Integer> columns, String key) {
-    Integer index = columns.get(key);
+    Integer index = columns.get(normalizeKey(key));
     if (index == null) {
       return "";
     }
@@ -121,36 +125,57 @@ public class ProductExcelImportService {
     return "";
   }
 
-  private BigDecimal money(Row row, Map<String, Integer> columns, String key) {
-    String value = text(row, columns, key).replace(".", "").replace("$", "").trim();
+  private BigDecimal money(Row row, Map<String, Integer> columns, String... keys) {
+    String value = firstText(row, columns, keys)
+        .replace("$", "")
+        .replace(".", "")
+        .replace(",", "")
+        .trim();
     if (value.isBlank()) {
       return null;
     }
     return new BigDecimal(value);
   }
 
-  private Integer integer(Row row, Map<String, Integer> columns, String key) {
-    String value = text(row, columns, key).trim();
+  private Integer integer(Row row, Map<String, Integer> columns, String... keys) {
+    String value = firstText(row, columns, keys).trim();
     if (value.isBlank()) {
       return null;
     }
     return Integer.valueOf(value.replace("%", ""));
   }
 
-  private LocalDate date(Row row, Map<String, Integer> columns, String key) {
-    String value = text(row, columns, key).trim();
-    if (value.isBlank()) {
-      return null;
+  private LocalDate date(Row row, Map<String, Integer> columns, String... keys) {
+    for (String key : keys) {
+      Integer index = columns.get(normalizeKey(key));
+      if (index == null) {
+        continue;
+      }
+      Cell cell = row.getCell(index);
+      if (cell == null) {
+        continue;
+      }
+      if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+        return cell.getDateCellValue().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+      }
+      String value = text(row, columns, key).trim();
+      if (!value.isBlank()) {
+        return LocalDate.parse(value);
+      }
     }
-    return LocalDate.parse(value);
+    return null;
   }
 
-  private boolean bool(Row row, Map<String, Integer> columns, String key, boolean defaultValue) {
-    String value = text(row, columns, key).trim().toLowerCase();
+  private boolean bool(Row row, Map<String, Integer> columns, boolean defaultValue, String... keys) {
+    String value = firstText(row, columns, keys).trim().toLowerCase();
     if (value.isBlank()) {
       return defaultValue;
     }
-    return value.equals("true") || value.equals("verdadero") || value.equals("si") || value.equals("sí") || value.equals("1");
+    return value.equals("true") || value.equals("verdadero") || value.equals("si") || value.equals("1");
+  }
+
+  private String normalizeKey(String key) {
+    return key == null ? "" : key.trim().toLowerCase().replace("_", "").replace(" ", "");
   }
 
   private String imagePath(String folder, String id) {
