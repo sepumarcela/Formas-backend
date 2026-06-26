@@ -84,11 +84,15 @@ public class PaymentService {
       if (reference.isBlank()) return;
 
       repository.findByReference(reference).ifPresent((order) -> {
+        OrderStatus previousStatus = order.status;
         order.providerPayload = payload;
         order.providerTransactionId = transaction.path("id").asText(order.providerTransactionId);
         order.status = mapStatus(transaction.path("status").asText(""));
         order.updatedAt = Instant.now();
-        repository.save(order);
+        Order saved = repository.save(order);
+        if (previousStatus != OrderStatus.APPROVED && saved.status == OrderStatus.APPROVED) {
+          notificationService.notifyApprovedOrder(saved);
+        }
       });
     } catch (Exception ignored) {
       // Wompi retries webhooks; keep this endpoint tolerant so a malformed event does not break checkout.

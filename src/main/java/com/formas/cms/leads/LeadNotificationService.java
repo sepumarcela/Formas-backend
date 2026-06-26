@@ -60,29 +60,41 @@ public class LeadNotificationService {
   public void notifyCustomerOrder(Order order) {
     send(
         "Nueva solicitud de compra o cotizacion - Formas Interiores",
-        String.join("\n",
-            "Se registro una solicitud desde el carrito.",
-            "",
-            "Referencia: " + value(order.reference),
-            "Tipo: " + value(order.paymentProvider),
-            "Metodo: " + value(order.paymentMethod),
-            "Total: " + money(order.amountCents),
-            "Subtotal: " + money(order.subtotalCents),
-            "IVA: " + money(order.taxCents),
-            "",
-            "Cliente:",
-            "Nombre: " + value(order.customer.name),
-            "Telefono: " + value(order.customer.phone),
-            "Correo: " + value(order.customer.email),
-            "Ciudad: " + value(order.customer.city),
-            "Direccion: " + value(order.customer.address),
-            "Notas: " + value(order.customer.notes),
-            "",
-            "Productos:",
-            order.items.stream().map(this::formatItem).collect(Collectors.joining("\n")),
-            "",
-            "Fecha: " + order.createdAt),
+        orderEmailBody(order, "Se registro una solicitud desde el carrito."),
         order.customer.email);
+  }
+
+  public void notifyApprovedOrder(Order order) {
+    send(
+        "Pedido pagado para despachar - Formas Interiores",
+        orderEmailBody(order, "Wompi confirmo el pago. Este pedido ya puede pasar a revision y despacho."),
+        order.customer.email);
+  }
+
+  private String orderEmailBody(Order order, String intro) {
+    return String.join("\n",
+        intro,
+        "",
+        "Referencia: " + value(order.reference),
+        "Tipo: " + value(order.paymentProvider),
+        "Estado: " + order.status,
+        "Metodo: " + value(order.paymentMethod),
+        "Total: " + money(order.amountCents),
+        "Subtotal: " + money(order.subtotalCents),
+        "IVA: " + money(order.taxCents),
+        "",
+        "Cliente:",
+        "Nombre: " + value(order.customer.name),
+        "Telefono: " + value(order.customer.phone),
+        "Correo: " + value(order.customer.email),
+        "Ciudad: " + value(order.customer.city),
+        "Direccion: " + value(order.customer.address),
+        "Notas: " + value(order.customer.notes),
+        "",
+        "Productos:",
+        order.items.stream().map(this::formatItem).collect(Collectors.joining("\n")),
+        "",
+        "Fecha: " + order.createdAt);
   }
 
   private void send(String subject, String body, String replyTo) {
