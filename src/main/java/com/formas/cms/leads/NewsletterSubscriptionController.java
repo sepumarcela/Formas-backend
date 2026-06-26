@@ -13,9 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/newsletter-subscriptions")
 public class NewsletterSubscriptionController {
   private final NewsletterSubscriptionRepository repository;
+  private final LeadNotificationService notificationService;
 
-  public NewsletterSubscriptionController(NewsletterSubscriptionRepository repository) {
+  public NewsletterSubscriptionController(NewsletterSubscriptionRepository repository,
+      LeadNotificationService notificationService) {
     this.repository = repository;
+    this.notificationService = notificationService;
   }
 
   @GetMapping
@@ -25,7 +28,7 @@ public class NewsletterSubscriptionController {
 
   @PostMapping
   public NewsletterSubscription create(@Valid @RequestBody NewsletterSubscription subscription) {
-    return repository.findByEmailIgnoreCase(subscription.email.trim())
+    NewsletterSubscription saved = repository.findByEmailIgnoreCase(subscription.email.trim())
         .map(existing -> {
           existing.active = true;
           return repository.save(existing);
@@ -37,5 +40,7 @@ public class NewsletterSubscriptionController {
           subscription.createdAt = Instant.now();
           return repository.save(subscription);
         });
+    notificationService.notifyNewsletterSubscription(saved);
+    return saved;
   }
 }

@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/contact-submissions")
 public class ContactSubmissionController {
   private final ContactSubmissionRepository repository;
+  private final LeadNotificationService notificationService;
 
-  public ContactSubmissionController(ContactSubmissionRepository repository) {
+  public ContactSubmissionController(ContactSubmissionRepository repository,
+      LeadNotificationService notificationService) {
     this.repository = repository;
+    this.notificationService = notificationService;
   }
 
   @GetMapping
@@ -26,6 +29,8 @@ public class ContactSubmissionController {
   public ContactSubmission create(@Valid @RequestBody ContactSubmission submission) {
     submission.id = null;
     submission.createdAt = java.time.Instant.now();
-    return repository.save(submission);
+    ContactSubmission saved = repository.save(submission);
+    notificationService.notifyContactSubmission(saved);
+    return saved;
   }
 }

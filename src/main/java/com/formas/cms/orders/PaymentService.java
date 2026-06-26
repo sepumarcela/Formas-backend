@@ -2,6 +2,7 @@ package com.formas.cms.orders;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.formas.cms.leads.LeadNotificationService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -15,11 +16,14 @@ public class PaymentService {
   private final OrderRepository repository;
   private final WompiProperties wompi;
   private final ObjectMapper objectMapper;
+  private final LeadNotificationService notificationService;
 
-  public PaymentService(OrderRepository repository, WompiProperties wompi, ObjectMapper objectMapper) {
+  public PaymentService(OrderRepository repository, WompiProperties wompi, ObjectMapper objectMapper,
+      LeadNotificationService notificationService) {
     this.repository = repository;
     this.wompi = wompi;
     this.objectMapper = objectMapper;
+    this.notificationService = notificationService;
   }
 
   public PaymentResponse createPayment(PaymentRequest request) {
@@ -28,6 +32,7 @@ public class PaymentService {
     Order order = buildOrder(request);
     order.paymentProvider = "WOMPI";
     order = repository.save(order);
+    notificationService.notifyCustomerOrder(order);
 
     PaymentResponse response = new PaymentResponse();
     response.reference = order.reference;
@@ -62,6 +67,7 @@ public class PaymentService {
     Order order = buildOrder(request);
     order.paymentProvider = "COORDINAR_COMPRA";
     order = repository.save(order);
+    notificationService.notifyCustomerOrder(order);
 
     PaymentResponse response = new PaymentResponse();
     response.reference = order.reference;
