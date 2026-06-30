@@ -2,6 +2,8 @@ package com.formas.cms.leads;
 
 import com.formas.cms.orders.Order;
 import com.formas.cms.orders.OrderItem;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,16 +17,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class LeadNotificationService {
   private static final Logger logger = LoggerFactory.getLogger(LeadNotificationService.class);
+  private static final String DEFAULT_RECIPIENTS =
+      "contacto@formasinteriores.com,hello-11@51669439.hubspot-inbox.com";
 
   private final ObjectProvider<JavaMailSender> mailSenderProvider;
-  private final String recipient;
+  private final List<String> recipients;
   private final String sender;
 
   public LeadNotificationService(ObjectProvider<JavaMailSender> mailSenderProvider,
-      @Value("${formas.notifications.to:contacto@formasinteriores.com}") String recipient,
+      @Value("${formas.notifications.to:" + DEFAULT_RECIPIENTS + "}") String recipient,
       @Value("${formas.notifications.from:contacto@formasinteriores.com}") String sender) {
     this.mailSenderProvider = mailSenderProvider;
-    this.recipient = recipient;
+    this.recipients = parseRecipients(recipient);
     this.sender = sender;
   }
 
@@ -100,21 +104,33 @@ public class LeadNotificationService {
   private void send(String subject, String body, String replyTo) {
     JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
     if (mailSender == null) {
-      logger.warn("No hay servidor SMTP configurado. Notificacion no enviada a {}", recipient);
+      logger.warn("No hay servidor SMTP configurado. Notificacion no enviada a {}", recipients);
+      return;
+    }
+
+    if (recipients.isEmpty()) {
+      logger.warn("No hay destinatarios configurados para notificaciones.");
       return;
     }
 
     try {
       SimpleMailMessage message = new SimpleMailMessage();
-      message.setTo(recipient);
+      message.setTo(recipients.toArray(String[]::new));
       message.setFrom(sender);
       message.setReplyTo(value(replyTo).equals("No informado") ? sender : replyTo.trim());
       message.setSubject(subject);
       message.setText(body);
       mailSender.send(message);
     } catch (MailException error) {
-      logger.warn("No se pudo enviar notificacion a {}", recipient, error);
+      logger.warn("No se pudo enviar notificacion a {}", recipients, error);
     }
+  }
+
+  private List<String> parseRecipients(String recipient) {
+    return Arrays.stream(value(recipient).split("[,;]"))
+        .map(String::trim)
+        .filter(email -> !email.isBlank() && !email.equals("No informado"))
+        .toList();
   }
 
   private String formatItem(OrderItem item) {
