@@ -33,14 +33,20 @@ public class LeadNotificationService {
   }
 
   public void notifyContactSubmission(ContactSubmission submission) {
+    String customerEmail = value(submission.email);
+
     send(
-        "Nueva solicitud de cotizacion - Formas Interiores",
+        "Lead cotizacion - " + customerEmail,
         String.join("\n",
+            "Correo del cliente: " + customerEmail,
+            "Nombre del cliente: " + value(submission.name),
+            "Telefono del cliente: " + value(submission.phone),
+            "",
             "Llego una nueva solicitud desde el formulario de contacto.",
             "",
             "Nombre: " + value(submission.name),
             "Telefono: " + value(submission.phone),
-            "Correo: " + value(submission.email),
+            "Correo: " + customerEmail,
             "Interes: " + value(submission.interest),
             "",
             "Mensaje:",
