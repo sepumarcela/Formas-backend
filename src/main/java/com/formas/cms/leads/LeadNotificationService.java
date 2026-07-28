@@ -54,6 +54,8 @@ public class LeadNotificationService {
             "",
             "Fecha: " + submission.createdAt),
         submission.email);
+
+    sendCustomerConfirmation(submission);
   }
 
   public void notifyNewsletterSubscription(NewsletterSubscription subscription) {
@@ -129,6 +131,45 @@ public class LeadNotificationService {
       mailSender.send(message);
     } catch (MailException error) {
       logger.warn("No se pudo enviar notificacion a {}", recipients, error);
+    }
+  }
+
+  private void sendCustomerConfirmation(ContactSubmission submission) {
+    String customerEmail = value(submission.email);
+    if (customerEmail.equals("No informado")) {
+      return;
+    }
+
+    JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+    if (mailSender == null) {
+      logger.warn("No hay servidor SMTP configurado. Confirmacion no enviada a {}", customerEmail);
+      return;
+    }
+
+    try {
+      SimpleMailMessage message = new SimpleMailMessage();
+      message.setTo(customerEmail);
+      message.setFrom(sender);
+      message.setReplyTo(sender);
+      message.setSubject("Recibimos tu solicitud - Formas Interiores");
+      message.setText(String.join("\n",
+          "Hola " + value(submission.name) + ",",
+          "",
+          "Gracias por contactar a Formas Interiores.",
+          "",
+          "Hemos recibido correctamente la informaci\u00f3n de tu proyecto. "
+              + "Uno de nuestros asesores revisar\u00e1 tu solicitud y se pondr\u00e1 en contacto contigo "
+              + "en el menor tiempo posible.",
+          "",
+          "Espacios de inter\u00e9s: " + value(submission.interest),
+          "",
+          "Si deseas agregar informaci\u00f3n, puedes responder directamente a este correo.",
+          "",
+          "Un saludo,",
+          "Equipo Formas Interiores"));
+      mailSender.send(message);
+    } catch (MailException error) {
+      logger.warn("No se pudo enviar confirmacion a {}", customerEmail, error);
     }
   }
 
